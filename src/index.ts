@@ -6,7 +6,6 @@ import { HpoTermDetails } from './responses'
 import { clearInterval } from 'timers'
 
 const BASE_URL = `https://hpo.jax.org/api/hpo`
-const ID_LENGTH = 8
 const NUMBER_REQUESTS_SECOND = 5
 
 const test: HpoTermDetails[] = []
@@ -15,17 +14,30 @@ export class HPOClient {
 	private stack: { id: string; done: boolean }[] = []
 	private toExecId: string = ''
 	private axiosInstance: AxiosInstance
+	private nbrOfRequestPeedSecond = NUMBER_REQUESTS_SECOND
 
-	constructor() {
+	constructor(config?: { nbrOfRequestPeedSecond?: number }) {
+		if (
+			config &&
+			config.nbrOfRequestPeedSecond &&
+			config.nbrOfRequestPeedSecond > NUMBER_REQUESTS_SECOND
+		) {
+			console.warn(
+				`⚠️  Your IP will be banned if nbrOfRequestPeedSecond > ${NUMBER_REQUESTS_SECOND}`
+			)
+		}
+
 		this.axiosInstance = axios.create({
 			httpsAgent: new https.Agent({
 				rejectUnauthorized: false,
 			}),
 		})
+		this.nbrOfRequestPeedSecond =
+			config?.nbrOfRequestPeedSecond || NUMBER_REQUESTS_SECOND
 		this.run()
 	}
 
-	public run() {
+	private run() {
 		setTimeout(() => {
 			const index = this.stack.findIndex((value) => {
 				return !value.done
@@ -34,10 +46,9 @@ export class HPOClient {
 				this.toExecId = this.stack[index].id
 			} else {
 				this.toExecId = ''
-				console.log('Finish')
 			}
 			this.run()
-		}, 5000)
+		}, 1000 / this.nbrOfRequestPeedSecond)
 	}
 
 	/**
@@ -64,7 +75,7 @@ export class HPOClient {
 						clearInterval(refreshId)
 						resolve(true)
 					}
-				}, 200)
+				}, 30)
 			})
 		}
 
@@ -83,23 +94,6 @@ export class HPOClient {
 	}
 }
 
-const client = new HPOClient()
-
-client
-	.getHPOTermDetailsByOntologyId('HP:0001166', true)
-	.then(async (response) => {
-		test.push(response)
-		let r = await client.getHPOTermDetailsByOntologyId('HP:0001166', true)
-		test.push(r)
-		r = await client.getHPOTermDetailsByOntologyId('HP:0001166', true)
-		test.push(r)
-		r = await client.getHPOTermDetailsByOntologyId('HP:0001166', true)
-		test.push(r)
-		r = await client.getHPOTermDetailsByOntologyId('HP:0001166', true)
-		test.push(r)
-		r = await client.getHPOTermDetailsByOntologyId('HP:0001166')
-		test.push(r)
-		r = await client.getHPOTermDetailsByOntologyId('HP:0001166')
-		test.push(r)
-		console.log(test)
-	})
+const client = new HPOClient({
+	nbrOfRequestPeedSecond: 90,
+})
