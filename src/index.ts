@@ -2,7 +2,7 @@ import { uid } from 'uid'
 import axios, { AxiosInstance } from 'axios'
 import { checkHPOId } from './helpers'
 import https from 'https'
-import { HpoTermDetails } from './responses'
+import { HpoTermDetails, IntersectingDiseaseAssociations } from './responses'
 import { clearInterval } from 'timers'
 
 const BASE_URL = `https://hpo.jax.org/api/hpo`
@@ -58,8 +58,10 @@ export class HPOClient {
 		ontologyId: string,
 		immediately = false
 	) {
+		if (!ontologyId) return null
+
 		if (!checkHPOId(ontologyId)) {
-			throw new Error(`NOP`)
+			throw new Error(`Invalid id ${ontologyId}`)
 		}
 
 		const id = uid()
@@ -92,8 +94,58 @@ export class HPOClient {
 
 		return data as HpoTermDetails
 	}
+
+	public async getAListOfIntersectingDiseaseAssociations(
+		ontologyIdIds: string[],
+		immediately = false
+	) {
+		if (!ontologyIdIds?.length) return null
+
+		for (const ontologyId of ontologyIdIds) {
+			if (!checkHPOId(ontologyId)) {
+				throw new Error(`Invalid id ${ontologyId}`)
+			}
+		}
+
+		const id = uid()
+		if (!immediately) {
+			this.stack.push({
+				id,
+				done: false,
+			})
+
+			await new Promise((resolve) => {
+				const refreshId = setInterval(() => {
+					if (this.toExecId === id) {
+						clearInterval(refreshId)
+						resolve(true)
+					}
+				}, 30)
+			})
+		}
+
+		// intersecting?q=HP%3A0000365%2CHP%3A0006385
+		const concat = ontologyIdIds.join(',')
+
+		const url = `${BASE_URL}/term/intersecting?q=${concat}`
+		const response = await this.axiosInstance.get(url)
+		const data = response.data
+
+		if (!immediately) {
+			const index = this.stack.findIndex((value) => {
+				return value.id === id
+			})
+			this.stack[index].done = true
+		}
+
+		return data as IntersectingDiseaseAssociations
+	}
 }
 
-const client = new HPOClient({
-	nbrOfRequestPeedSecond: 90,
-})
+const client = new HPOClient()
+
+client
+	.getAListOfIntersectingDiseaseAssociations(['HP:0000365', 'HP:0006385'])
+	.then((r) => {
+		console.log(r)
+	})

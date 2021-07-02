@@ -26,3 +26,12 @@ export interface HpoTermDetails {
 		}[]
 	}
 }
+
+export interface IntersectingDiseaseAssociations {
+	associations: {
+		diseaseId: string // OMIM
+		diseaseName: string
+		dbId: number
+		db: 'OMIM'
+	}[]
+}
