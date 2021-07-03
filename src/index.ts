@@ -2,11 +2,16 @@ import { uid } from 'uid'
 import axios, { AxiosInstance } from 'axios'
 import { checkHPOId } from './helpers'
 import https from 'https'
-import { HpoTermDetails, IntersectingDiseaseAssociations } from './responses'
+import {
+	DiseaseAssociations,
+	GeneAssociations,
+	HpoTermDetails,
+	IntersectingDiseaseAssociations,
+} from './responses'
 import { clearInterval } from 'timers'
 
 const BASE_URL = `https://hpo.jax.org/api/hpo`
-const NUMBER_REQUESTS_SECOND = 5
+const NUMBER_REQUESTS_SECOND = 10
 
 const test: HpoTermDetails[] = []
 
@@ -53,6 +58,7 @@ export class HPOClient {
 
 	/**
 	 * Get hpo term details by ontology id.
+	 * https://hpo.jax.org/api/hpo/term/HP%3A0001166
 	 */
 	public async getHPOTermDetailsByOntologyId(
 		ontologyId: string,
@@ -95,6 +101,10 @@ export class HPOClient {
 		return data as HpoTermDetails
 	}
 
+	/**
+	 * Get a list of intersecting disease associations for a set of terms
+	 * https://hpo.jax.org/api/hpo/term/intersecting?q=HP%3A0000365%2CHP%3A0006385
+	 */
 	public async getAListOfIntersectingDiseaseAssociations(
 		ontologyIdIds: string[],
 		immediately = false
@@ -140,12 +150,96 @@ export class HPOClient {
 
 		return data as IntersectingDiseaseAssociations
 	}
+
+	/**
+	 * Get gene associations for a specific term
+	 * https://hpo.jax.org/api/hpo/term/HP%3A0001166/genes?max=-1&offset=1
+	 *
+	 */
+	public async getGeneAssociations(ontologyId: string, immediately = false) {
+		if (!ontologyId) return null
+
+		if (!checkHPOId(ontologyId)) {
+			throw new Error(`Invalid id ${ontologyId}`)
+		}
+
+		// /term/HP%3A0001166/genes
+		const url = `${BASE_URL}/term/${ontologyId}/genes?max=-1&offset=1`
+
+		const id = uid()
+		if (!immediately) {
+			this.stack.push({
+				id,
+				done: false,
+			})
+
+			await new Promise((resolve) => {
+				const refreshId = setInterval(() => {
+					if (this.toExecId === id) {
+						clearInterval(refreshId)
+						resolve(true)
+					}
+				}, 30)
+			})
+		}
+
+		const response = await this.axiosInstance.get(url)
+		const data = response.data
+
+		if (!immediately) {
+			const index = this.stack.findIndex((value) => {
+				return value.id === id
+			})
+			this.stack[index].done = true
+		}
+
+		return data as GeneAssociations
+	}
+
+	/**
+	 * Get disease associations for a specific term
+	 * https://hpo.jax.org/api/hpo/term/HP%3A0001166/diseases?max=-1&offset=1
+	 */
+	public async getDiseasesAssociations(
+		ontologyId: string,
+		immediately = false
+	) {
+		if (!ontologyId) return null
+
+		if (!checkHPOId(ontologyId)) {
+			throw new Error(`Invalid id ${ontologyId}`)
+		}
+
+		// /term/HP%3A0001166/genes
+		const url = `${BASE_URL}/term/${ontologyId}/diseases?max=-1&offset=1`
+
+		const id = uid()
+		if (!immediately) {
+			this.stack.push({
+				id,
+				done: false,
+			})
+
+			await new Promise((resolve) => {
+				const refreshId = setInterval(() => {
+					if (this.toExecId === id) {
+						clearInterval(refreshId)
+						resolve(true)
+					}
+				}, 30)
+			})
+		}
+
+		const response = await this.axiosInstance.get(url)
+		const data = response.data
+
+		if (!immediately) {
+			const index = this.stack.findIndex((value) => {
+				return value.id === id
+			})
+			this.stack[index].done = true
+		}
+
+		return data as DiseaseAssociations
+	}
 }
-
-const client = new HPOClient()
-
-client
-	.getAListOfIntersectingDiseaseAssociations(['HP:0000365', 'HP:0006385'])
-	.then((r) => {
-		console.log(r)
-	})
