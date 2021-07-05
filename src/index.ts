@@ -56,6 +56,8 @@ export class HPOClient {
 		}, 1000 / this.nbrOfRequestPeedSecond)
 	}
 
+	//---------------- TERMS ------------------
+
 	/**
 	 * Get hpo term details by ontology id.
 	 * https://hpo.jax.org/api/hpo/term/HP%3A0001166
@@ -241,5 +243,55 @@ export class HPOClient {
 		}
 
 		return data as DiseaseAssociations
+	}
+
+	// ------------------ SEARCH -------------------
+
+	/**
+	 * Search terms, diseases and genes
+	 * https://hpo.jax.org/api/hpo/search/?q=arach&max=-1&offset=0&category=terms
+	 */
+	public async search(
+		search: string,
+		category: 'terms' | 'genes' | 'diseases',
+		immediately = false
+	) {
+		if (!search) {
+			return null
+		}
+
+		const q = search.toLowerCase().trim()
+
+		const url = `${BASE_URL}/search/?q=${q}&max=-1&offset=0&category=${category}`
+
+		const id = uid()
+		if (!immediately) {
+			this.stack.push({
+				id,
+				done: false,
+			})
+
+			await new Promise((resolve) => {
+				const refreshId = setInterval(() => {
+					if (this.toExecId === id) {
+						clearInterval(refreshId)
+						resolve(true)
+					}
+				}, 30)
+			})
+		}
+
+		const response = await this.axiosInstance.get(url)
+		const data = response.data
+
+		if (!immediately) {
+			const index = this.stack.findIndex((value) => {
+				return value.id === id
+			})
+			this.stack[index].done = true
+		}
+
+		return data as DiseaseAssociations
+
 	}
 }
