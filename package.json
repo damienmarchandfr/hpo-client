@@ -1,11 +1,17 @@
 {
 	"name": "hpo-client",
-	"version": "0.0.0",
-	"author": "",
+	"version": "1.0.0",
+	"author": "Damien Marchand",
+	"contributors": [
+		"Maxime Farrugia <farrugia.maxime@gmail.com>"
+	],
 	"license": "MIT",
-	"repository": "",
+	"repository": "https://github.com/damienmarchandfr/hpo-client",
 	"description": "",
-	"keywords": [],
+	"keywords": [
+		"api",
+		"hpo"
+	],
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"files": [
