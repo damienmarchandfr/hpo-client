@@ -1,9 +1,9 @@
 {
 	"name": "hpo-client",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"author": "Damien Marchand",
 	"contributors": [
-		"Maxime Farrugia <farrugia.maxime@gmail.com>"
+		"MaximeFarrugia <farrugia.maxime@gmail.com>"
 	],
 	"license": "MIT",
 	"repository": "https://github.com/damienmarchandfr/hpo-client",
