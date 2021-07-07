@@ -1,5 +1,5 @@
 import { uid } from 'uid'
-import { checkEntrezId, checkHPOId, checkOMIMId } from './helpers'
+import { checkEntrezId, checkHPOId, checkOMIMId, createPaginationUrl, paginateResult } from './helpers'
 import {
 	Descendant,
 	Disease,
@@ -12,6 +12,7 @@ import {
 } from './responses'
 import { clearInterval } from 'timers'
 import { HTTPClient } from './HTTPClient'
+import { PaginationParams } from './pagination'
 
 const BASE_URL = `https://hpo.jax.org/api/hpo`
 const NUMBER_REQUESTS_SECOND = 10
@@ -100,7 +101,7 @@ export class HPOClient extends HTTPClient {
 	 * https://hpo.jax.org/api/hpo/term/HP%3A0001166/genes?max=-1
 	 *
 	 */
-	public async getGeneAssociations(ontologyId: string, immediately = false) {
+	public async getGeneAssociations(ontologyId: string, pagination: PaginationParams, immediately = false) {
 		if (!ontologyId) return null
 
 		if (!checkHPOId(ontologyId)) {
@@ -108,7 +109,7 @@ export class HPOClient extends HTTPClient {
 		}
 
 		// /term/HP%3A0001166/genes
-		const url = `${BASE_URL}/term/${ontologyId}/genes?max=-1`
+		const url = createPaginationUrl(`${BASE_URL}/term/${ontologyId}/genes`, pagination)
 
 		const id = uid()
 		await this.waitToExecute(id, immediately)
@@ -117,7 +118,7 @@ export class HPOClient extends HTTPClient {
 
 		this.removeFromStack(id)
 
-		return data
+		return paginateResult(data.genes, pagination, data.geneCount)
 	}
 
 	/**
@@ -126,6 +127,7 @@ export class HPOClient extends HTTPClient {
 	 */
 	public async getDiseasesAssociations(
 		ontologyId: string,
+		pagination: PaginationParams,
 		immediately = false
 	) {
 		if (!ontologyId) return null
@@ -135,7 +137,7 @@ export class HPOClient extends HTTPClient {
 		}
 
 		// /term/HP%3A0001166/genes
-		const url = `${BASE_URL}/term/${ontologyId}/diseases?max=-1`
+		const url = createPaginationUrl(`${BASE_URL}/term/${ontologyId}/diseases`, pagination)
 
 		const id = uid()
 		await this.waitToExecute(id, immediately)
@@ -144,7 +146,7 @@ export class HPOClient extends HTTPClient {
 
 		this.removeFromStack(id)
 
-		return data
+		return paginateResult(data.diseases, pagination, data.diseaseCount)
 	}
 
 	/**
@@ -153,17 +155,27 @@ export class HPOClient extends HTTPClient {
 	 */
 	public async search(
 		term: string,
-		category?: 'terms' | 'genes' | 'diseases',
+		pagination: PaginationParams,
+		category: 'terms' | 'genes' | 'diseases',
 		immediately = false
 	) {
 		if (!term) return null
 
 		// /search/?q=arach&max=-1
-		let url = `${BASE_URL}/search/?q=${term}&max=-1`
+		let url = `${BASE_URL}/search/?q=${term}`
 
-		if (category) {
-			url += `&category=${category}`
+		// API is broken, it's swapped
+		if (category === 'genes') category = 'diseases'
+		else if (category === 'diseases') category = 'genes'
+
+		url += `&category=${category}`
+
+		// API is broken, pagination doesn't work with terms
+		if (category === 'terms') {
+			pagination.max = -1
 		}
+
+		url = createPaginationUrl(url, pagination)
 
 		const id = uid()
 		await this.waitToExecute(id, immediately)
@@ -172,7 +184,15 @@ export class HPOClient extends HTTPClient {
 
 		this.removeFromStack(id)
 
-		return data
+		// API is broken, genes and diseases are swapper
+		switch (category) {
+			case 'terms':
+				return paginateResult<Search['terms'][number]>(data.terms, pagination, data.termsTotalCount)
+			case 'genes':
+				return paginateResult<Search['diseases'][number]>(data.diseases, pagination, data.diseasesTotalCount)
+			case 'diseases':
+				return paginateResult<Search['genes'][number]>(data.genes, pagination, data.genesTotalCount)
+		}
 	}
 
 	/**
