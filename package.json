@@ -23,7 +23,7 @@
 	"engineStrict": true,
 	"scripts": {
 		"dev": "ts-node-dev --respawn ./src/index.ts",
-		"build": "rimraf dist && tsc -p tsconfig.build.json",
+		"build": "rimraf dist && tsc -p tsconfig.build.json && mkdir ./dist/data && cp ./src/data/hpo.json ./dist/data/hpo.json",
 		"prepublishOnly": "yarn build",
 		"test": "jest",
 		"test:watch": "jest --watch --verbose false",
