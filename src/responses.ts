@@ -145,3 +145,23 @@ export interface Gene {
 		db: string
 	}>
 }
+
+export interface SearchResult {
+	terms: {
+		name: string
+		id: string
+		childrenCount: number
+		ontologyId: string
+		synonym: null | string
+	}[]
+	termsTotalCount: number | number
+	termsOffset: 0
+
+	diseases: []
+	diseasesTotalCount: null | number
+	diseasesOffset: null
+	
+	genes: []
+	genesTotalCount: null | number
+	genesOffset: null | number
+}

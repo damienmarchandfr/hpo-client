@@ -41,6 +41,8 @@ export class HPOClient extends HTTPClient {
 		this.run()
 	}
 
+	//---------------- TERMS ------------------
+
 	/**
 	 * Get hpo term details by ontology id.
 	 * https://hpo.jax.org/api/hpo/term/HP%3A0001166
