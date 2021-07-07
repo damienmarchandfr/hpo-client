@@ -21,6 +21,7 @@ export class HPOClient extends HTTPClient {
 	private stack: string[] = []
 	private toExecId: string = ''
 	private nbrOfRequestPerSecond = NUMBER_REQUESTS_SECOND
+	private hpoList: string[] = []
 
 	constructor(config?: { nbrOfRequestPerSecond?: number }) {
 		super()
@@ -227,10 +228,7 @@ export class HPOClient extends HTTPClient {
 	 * Get disease details ( term and gene associations ) by disease Id
 	 * https://hpo.jax.org/api/hpo/disease/OMIM%3A154700
 	 */
-	public async getDisease(
-		diseaseId: string,
-		immediately = false
-	) {
+	public async getDisease(diseaseId: string, immediately = false) {
 		if (!diseaseId) return null
 
 		if (!checkOMIMId(diseaseId)) {
@@ -254,10 +252,7 @@ export class HPOClient extends HTTPClient {
 	 * Get gene details ( disease and term associations ) by entrez Id
 	 * https://hpo.jax.org/api/hpo/gene/2200
 	 */
-	public async getGene(
-		entrezId: string,
-		immediately = false
-	) {
+	public async getGene(entrezId: string, immediately = false) {
 		if (!entrezId) return null
 
 		if (!checkEntrezId(entrezId)) {
@@ -277,6 +272,18 @@ export class HPOClient extends HTTPClient {
 		return data
 	}
 
+	public getHPOList(keepInMemory = false) {
+		if (this.hpoList.length) {
+			return this.hpoList
+		} else {
+			if (keepInMemory) {
+				this.hpoList = require('./data/hpo.json')
+				return this.hpoList
+			}
+			return require('./data/hpo.json') as string[]
+		}
+	}
+
 	private run() {
 		setTimeout(() => {
 			this.toExecId = this.stack.length ? this.stack[0] : ''
@@ -285,7 +292,7 @@ export class HPOClient extends HTTPClient {
 	}
 
 	private waitToExecute(id: string, immediately: boolean = false) {
-		return new Promise(resolve => {
+		return new Promise((resolve) => {
 			if (immediately) {
 				resolve(true)
 			} else {
