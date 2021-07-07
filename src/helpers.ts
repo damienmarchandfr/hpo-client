@@ -15,17 +15,18 @@ export function checkEntrezId(id: string) {
 	return !!id.match(regex)
 }
 
-export function createPaginationUrl(url: string, pagination: PaginationParams) {
-	const max = pagination.max
-	const offset = max === -1 ? 0 : Math.min(Math.abs(pagination.page - 1), 0)
+export function createPaginationUrl(url: string, pagination: PaginationParams | null) {
+	const max = pagination?.max || -1
+	const offset = max === -1 || !pagination ? 0 : Math.max(pagination.page - 1, 0)
 	let cleanUrl = url.replace(/(&|\?)(max|offset)=[^&]*/g, '')
 
 	cleanUrl += `${cleanUrl.includes('?') ? '&' : '?'}max=${max}&offset=${offset}`
 	return cleanUrl
 }
 
-export function paginateResult<T>(values: T[], pagination: PaginationParams, totalValuesCount: number): PaginationResult<T> {
-	const page = Math.min(Math.abs(pagination.page), 1)
+export function paginateResult<T>(values: T[], pagination: PaginationParams | null, totalValuesCount: number): PaginationResult<T> {
+	if (!pagination) return { values, next: false }
 
+	const page = Math.max(pagination.page, 1)
 	return { values, next: pagination.max > -1 && pagination.max * page < totalValuesCount }
 }
