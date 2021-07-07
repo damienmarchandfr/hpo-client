@@ -42,8 +42,6 @@ export class HPOClient extends HTTPClient {
 		this.run()
 	}
 
-	//---------------- TERMS ------------------
-
 	/**
 	 * Get hpo term details by ontology id.
 	 * https://hpo.jax.org/api/hpo/term/HP%3A0001166
@@ -104,7 +102,7 @@ export class HPOClient extends HTTPClient {
 	 * https://hpo.jax.org/api/hpo/term/HP%3A0001166/genes?max=-1
 	 *
 	 */
-	public async getGeneAssociations(ontologyId: string, pagination: PaginationParams, immediately = false) {
+	public async getGeneAssociations(ontologyId: string, pagination: PaginationParams | null = null, immediately = false) {
 		if (!ontologyId) return null
 
 		if (!checkHPOId(ontologyId)) {
@@ -130,7 +128,7 @@ export class HPOClient extends HTTPClient {
 	 */
 	public async getDiseasesAssociations(
 		ontologyId: string,
-		pagination: PaginationParams,
+		pagination: PaginationParams | null = null,
 		immediately = false
 	) {
 		if (!ontologyId) return null
@@ -158,8 +156,8 @@ export class HPOClient extends HTTPClient {
 	 */
 	public async search(
 		term: string,
-		pagination: PaginationParams,
 		category: 'terms' | 'genes' | 'diseases',
+		pagination: PaginationParams | null = null,
 		immediately = false
 	) {
 		if (!term) return null
@@ -174,7 +172,7 @@ export class HPOClient extends HTTPClient {
 		url += `&category=${category}`
 
 		// API is broken, pagination doesn't work with terms
-		if (category === 'terms') {
+		if (pagination && category === 'terms') {
 			pagination.max = -1
 		}
 
